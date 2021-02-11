@@ -1,0 +1,117 @@
+
+
+
+Created on Sat Aug 22 13:47:12 2020
+
+@author: gorya
+"""
+
+
+from binance.client import Client
+#from binance.websockets import BinanceSocketManager
+#from twisted.internet import reactor
+import pandas as pd
+from datetime import datetime
+import time
+import requests
+APIKey = "your key"
+SecretKey = "your key"
+def telegram_bot_sendtext(bot_message):
+    
+            bot_token = 'your token'
+            bot_chatID = 'your id'
+            send_text = 'https://api.telegram.org/bot' + bot_token 
+
+            response = requests.get(send_text)
+
+            return response.json()
+
+client = Client(APIKey, SecretKey)
+orders_df = pd.DataFrame( columns=['time', 'side','pair',  'price', 'ammount', 'fee', 'LINK_total', 'USD_Total'])
+while True:
+    time.sleep(2)
+    try:
+        client = Client(APIKey, SecretKey)
+        candles = client.get_klines(symbol='LINKUSDT', interval=Client.KLINE_INTERVAL_1MINUTE)
+    except requests.exceptions.RequestException as e:
+        print(e)
+        
+        
+        pass
+    except ConnectionError as a:    # This is the correct syntax
+        print (a)
+        print('!exception 2!')
+        pass
+
+
+    
+    U_balance = client.get_asset_balance(asset='USDT') 
+    L_balance = client.get_asset_balance(asset='LINK') 
+    USDT_balance = pd.Series(U_balance)
+    LINK_balance = pd.Series(L_balance)
+
+    for line in candles:
+        del line[5:]
+    btc_df = pd.DataFrame(candles, columns=['time', 'open', 'high', 'low', 'close'])
+    btc_df = btc_df.iloc[250:]
+
+    def change_time (x):
+   
+        x = x / 1000
+        x = datetime.fromtimestamp(x).strftime('%Y-%m-%d %H:%M:%S')
+        return x
+    btc_df['time'] = btc_df['time'].apply(change_time)
+    btc_df['sma'] = btalib.sma(btc_df.close, period=20).df
+
+
+    macd = talib.MACD(btc_df.close,fastperiod=12, slowperiod=26, signalperiod=9)
+
+    btc_df['signal'] = macd[1]
+    btc_df['macd'] = macd[0]
+
+
+
+
+    if (btc_df.iloc[-1][7]) < -0.04 :
+        order = client.order_market_buy(symbol='LINKUSDT',quantity= 100
+        time.sleep(1)
+        U_balance = client.get_asset_balance(asset='USDT') 
+        L_balance = client.get_asset_balance(asset='LINK') 
+        USDT_balance = pd.Series(U_balance)
+        LINK_balance = pd.Series(L_balance)
+        orders_df = orders_df.append({'time': btc_df.iloc[-1][0] ,'side': 'buy' , 'pair': 'LINKUSDT', 'price': float(btc_df.iloc[-1][4]) ,'ammount' : ((float(USDT_balance[1])*0.99)/float(btc_df.iloc[-1][4])) , 'fee': ((float(USDT_balance[1])*0.99)/100)*0.75 , 'LINK_total' : round(float(LINK_balance[1]),2) , 'USD_Total' : float(USDT_balance[1])   }, ignore_index=True)
+        message = telegram_bot_sendtext(str(orders_df.iloc[-1]) )
+        
+        print(orders_df.iloc[-1])
+        print('----------------------------------------')
+    
+        
+# sell if price gain more than 20$ and signal line is positive    
+        if ((float(orders_df.iloc[-1][3]) + 0.27 ) < float(btc_df.iloc[-1][4])) :
+            time.sleep(1)
+            U_balance = client.get_asset_balance(asset='USDT') 
+            L_balance = client.get_asset_balance(asset='LINK') 
+            USDT_balance = pd.Series(U_balance)
+            LINK_balance = pd.Series(L_balance)
+            orders_df = orders_df.append({'time': btc_df.iloc[-1][0] , 'side': 'sell' ,'pair': 'LINKUSDT', 'price': btc_df.iloc[-1][4] ,'ammount' : float(LINK_balance[1]) , 'fee': ((float(USDT_balance[1])*0.99)/100)*0.75 , 'LINK_total' : round(float(LINK_balance[1]),2) , 'USD_Total' : float(USDT_balance[1])   }, ignore_index=True)
+            message = telegram_bot_sendtext(str(orders_df.iloc[-1]) )
+            
+
+            print(orders_df.iloc[-1])
+            print('----------------------------------------')
+            
+# if price drop 50$ sell all and stop
+        if ((float(orders_df.iloc[-1][3]) -0.3  ) > float(btc_df.iloc[-1][4])) and flag =='sell' :
+            order = client.order_market_sell(symbol='LINKUSDT',quantity= round((float(LINK_balance[1])*0.995),2))
+            time.sleep(1)
+            U_balance = client.get_asset_balance(asset='USDT') 
+            L_balance = client.get_asset_balance(asset='LINK') 
+            USDT_balance = pd.Series(U_balance)
+            LINK_balance = pd.Series(L_balance)
+            orders_df = orders_df.append({'time': btc_df.iloc[-1][0] , 'side': 'sell' ,'pair': 'BTCUSDT', 'price': btc_df.iloc[-1][4] ,'ammount' : float(LINK_balance[1]) , 'fee': ((float(USDT_balance[1])/4)/100)*0.75 , 'LINK_total' : round(float(LINK_balance[1]),2) , 'USD_Total' : float(USDT_balance[1])   }, ignore_index=True)
+            message = telegram_bot_sendtext('!!!!! the markt has droped rapidlly, so i sold the coins and wait for normalization of the market !!!!!' )
+            
+
+            
+
+    
